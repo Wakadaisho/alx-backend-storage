@@ -1,4 +1,3 @@
 // list all documents in the collection school
 
-db = new Mongo().getDB(`${process.argv[2]}`);
 db.school.find();
