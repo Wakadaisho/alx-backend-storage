@@ -3,7 +3,7 @@
 Redis Cache module
 """
 import uuid
-from typing import Union, Callable
+from typing import Union, Callable, List
 from functools import wraps
 
 import redis
@@ -46,29 +46,37 @@ class Cache:
     @count_calls
     @call_history
     def store(self, data: Union[str, bytes, int, float]) -> str:
+        """Store data in the redis cache"""
         key: str = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
 
     def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int,
                                                           float]:
+        """Retrieve data from the redis store
+        converted through fn to correct type"""
         if fn:
             return fn(self._redis.get(key))
         return self._redis.get(key)
 
     def get_str(self, key: str) -> str:
+        """Retrive string data from redis store"""
         return self.get(key, str)
 
     def get_int(self, key: str) -> int:
+        """Retrieve integer data from redis store"""
         return self.get(key, int)
 
 
 def replay(method: Callable):
+    """
+    Returns history of input commands with their corresponding outputs
+    """
     _redis = redis.Redis()
-    key = method.__qualname__
+    key: str = method.__qualname__
     print("{} was called {} times".format(key,  int(_redis.get(key))))
-    inputs = _redis.lrange(key + ":inputs", 0, -1)
-    outputs = _redis.lrange(key + ":outputs", 0, -1)
+    inputs: List[str] = _redis.lrange(key + ":inputs", 0, -1)
+    outputs: List[str] = _redis.lrange(key + ":outputs", 0, -1)
     for i, o in zip(inputs, outputs):
         print("{}(*{}) -> {}".format(key, i.decode("utf-8"),
                                      o.decode("utf-8")))
